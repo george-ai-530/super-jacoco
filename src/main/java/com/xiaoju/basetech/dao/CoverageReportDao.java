@@ -4,7 +4,6 @@ import com.xiaoju.basetech.entity.CoverageReportEntity;
 import com.xiaoju.basetech.entity.DeployInfoEntity;
 import org.apache.ibatis.annotations.Param;
 
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 

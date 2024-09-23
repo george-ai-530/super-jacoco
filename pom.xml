@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.0.2.RELEASE</version>
+        <version>2.7.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -21,11 +21,11 @@
         <entity.target.dir>src/main/java/</entity.target.dir>
         <dao.resources.dir>src/main/resources/</dao.resources.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
         <spring-cloud.version>Finchley.RELEASE</spring-cloud.version>
-        <mybatis-spring-boot>1.2.0</mybatis-spring-boot>
-        <mysql-connector>5.1.39</mysql-connector>
-        <JAVA_HOME>/Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home</JAVA_HOME>
+        <mybatis-spring-boot>2.2.2</mybatis-spring-boot>
+        <mysql-connector>8.0.28</mysql-connector>
+        <!--        <JAVA_HOME>/Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home</JAVA_HOME>-->
     </properties>
 
     <dependencies>
@@ -44,18 +44,21 @@
             <artifactId>org.jacoco.core</artifactId>
             <version>0.8.4</version>
         </dependency>
+
         <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
-            <version>7.1</version>
+            <version>9.4</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+            <version>3.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <version>3.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -77,10 +80,11 @@
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>${mybatis-spring-boot}</version>
         </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.16</version>
+            <version>1.18.30</version>
         </dependency>
         <!-- MySQL 连接驱动依赖 -->
         <dependency>
@@ -111,7 +115,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>15.0</version>
+            <version>33.2.1-jre</version>
         </dependency>
         <dependency>
             <groupId>net.sf.json-lib</groupId>
@@ -174,11 +178,13 @@
             <artifactId>rest-assured</artifactId>
             <version>3.1.1</version>
         </dependency>
+
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>4.9.0.201710071750-r</version>
+            <version>7.0.0.202409031743-r</version>
         </dependency>
+
 
         <dependency>
             <groupId>com.github.javaparser</groupId>
@@ -189,12 +195,12 @@
         <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-swagger2</artifactId>
-            <version>2.7.0</version>
+            <version>2.9.2</version>
         </dependency>
         <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-swagger-ui</artifactId>
-            <version>2.7.0</version>
+            <version>2.9.2</version>
         </dependency>
         <dependency>
             <!-- jsoup HTML parser library @ http://jsoup.org/ -->
@@ -208,6 +214,20 @@
             <version>2.0.2</version>
         </dependency>
 
+
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>8.0.0.Final</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+
+
     </dependencies>
 
     <dependencyManagement>
@@ -215,7 +235,7 @@
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
+                <version>2020.0.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -233,8 +253,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>17</source>
+                    <target>17</target>
                     <compilerArguments>
                         <bootclasspath>${java.home}/lib/rt.jar:${java.home}/lib/jce.jar</bootclasspath>
                     </compilerArguments>

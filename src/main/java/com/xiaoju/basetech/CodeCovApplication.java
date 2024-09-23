@@ -7,12 +7,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
+//import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @EnableAsync
 @EnableScheduling
 @SpringBootApplication
 @Log
-@EnableSwagger2
+//@EnableSwagger2
 @MapperScan("com.xiaoju.basetech.dao")
 public class CodeCovApplication {
 

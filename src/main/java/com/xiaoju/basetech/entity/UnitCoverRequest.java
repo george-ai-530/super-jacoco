@@ -2,15 +2,10 @@ package com.xiaoju.basetech.entity;
 
 import lombok.Data;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-
 /**
- * @description:
- * @author: charlynegaoweiwei
- * @time: 2020/4/26 7:52 PM
+ * {@code @description:}
+ * {@code @author:} charlynegaoweiwei
+ * {@code @time:} 2020/4/26 7:52 PM
  */
 @Data
 public class UnitCoverRequest extends CoverBaseRequest{

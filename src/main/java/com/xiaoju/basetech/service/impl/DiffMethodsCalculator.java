@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 @Slf4j
@@ -17,18 +16,15 @@ public class DiffMethodsCalculator {
     /**
      * 下载代码并计算diff方法
      *
-     * @param coverageReport
-     * @return
+     * @param coverageReport 覆盖率报告实体
      */
     public void executeDiffMethods(CoverageReportEntity coverageReport) {
-        StringBuffer diffFile = new StringBuffer();
+        StringBuilder diffFile = new StringBuilder();
         long s = System.currentTimeMillis();
-        HashMap map = JDiffFiles.diffMethodsListNew(coverageReport);
+        HashMap<String, String> map = JDiffFiles.diffMethodsListNew(coverageReport);
         if (!CollectionUtils.isEmpty(map)) {
-            Iterator<Map.Entry<String, String>> iterator = map.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, String> entry = iterator.next();
-                diffFile.append(entry.getKey() + ":" + entry.getValue() + "%");
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                diffFile.append(entry.getKey()).append(":").append(entry.getValue()).append("%");
             }
             coverageReport.setDiffMethod(diffFile.toString());
         }
@@ -40,14 +36,12 @@ public class DiffMethodsCalculator {
         if (baseVersionPath.equals(nowVersionPath)) {
             return null;
         }
-        StringBuffer diffFile = new StringBuffer();
+        StringBuilder diffFile = new StringBuilder();
         long ms = System.currentTimeMillis();
-        HashMap map = JDiffFiles.diffMethodsListForEnv(baseVersionPath, nowVersionPath, baseVersion, nowVersion);
+        HashMap<String, String> map = JDiffFiles.diffMethodsListForEnv(baseVersionPath, nowVersionPath, baseVersion, nowVersion);
         if (map != null && !map.isEmpty()) {
-            Iterator<Map.Entry<String, String>> iterator = map.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, String> entry = iterator.next();
-                diffFile.append(entry.getKey() + ":" + entry.getValue() + "%");
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                diffFile.append(entry.getKey()).append(":").append(entry.getValue()).append("%");
             }
             return diffFile.toString();
         }

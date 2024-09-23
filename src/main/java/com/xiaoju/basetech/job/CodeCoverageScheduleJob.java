@@ -4,11 +4,11 @@ import com.xiaoju.basetech.dao.CoverageReportDao;
 import com.xiaoju.basetech.entity.CoverageReportEntity;
 import com.xiaoju.basetech.service.CodeCovService;
 import com.xiaoju.basetech.util.Constants;
+import com.xiaoju.basetech.util.GitHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.text.DateFormat;
@@ -17,6 +17,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.xiaoju.basetech.util.Constants.CODE_ROOT;
 
 /**
  * @description:
@@ -34,12 +36,12 @@ public class CodeCoverageScheduleJob {
     private CodeCovService codeCovService;
 
 
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd  HH:mm:ss");
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd  HH:mm:ss");
 
-    private static AtomicInteger counter = new AtomicInteger(0);
+    private static final AtomicInteger counter = new AtomicInteger(0);
 
 
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 2, 5 * 60, TimeUnit.SECONDS,
+    private static final ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 2, 5 * 60, TimeUnit.SECONDS,
             new SynchronousQueue<>(), r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()));
 
 
@@ -53,7 +55,7 @@ public class CodeCoverageScheduleJob {
         // 1. 查询需要diff的数据
         List<CoverageReportEntity> resList = coverageReportDao.queryCoverByStatus(Constants.JobStatus.INITIAL.val(),
                 Constants.CoverageFrom.UNIT.val(), 1);
-        log.info("查询需要diff的数据{}条", resList.size());
+        log.info("codeCloneJob 查询需要diff的数据{}条", resList.size());
         resList.forEach(o -> {
             try {
                 int num = coverageReportDao.casUpdateByStatus(Constants.JobStatus.INITIAL.val(),
@@ -91,7 +93,7 @@ public class CodeCoverageScheduleJob {
     /**
      * 每五分钟从项目机器上拉取exec执行文件，计算环境的增量方法覆盖率
      */
-    @Scheduled(fixedDelay = 300_000L, initialDelay = 300_000L)
+    @Scheduled(fixedDelay = 300_000L, initialDelay = 3_000L)
     public void calculateEnvCov() {
         List<CoverageReportEntity> resList = coverageReportDao.queryCoverByStatus(Constants.JobStatus.SUCCESS.val(),
                 Constants.CoverageFrom.ENV.val(), 10);
@@ -111,7 +113,13 @@ public class CodeCoverageScheduleJob {
                         }
                     }
                     log.info("others execute exec task uuid={}", o.getUuid());
-                    if (o.getType() == Constants.ReportType.DIFF.val() && StringUtils.isEmpty(o.getDiffMethod())) {
+                    if (o.getType() == Constants.ReportType.DIFF.val()
+//                            && StringUtils.isEmpty(o.getDiffMethod())
+                    ) {
+                        String baseLocalPath = CODE_ROOT + o.getUuid() + "/" + o.getBaseVersion().replace("/", "_");
+                        o.setBaseLocalPath(baseLocalPath);
+//                        gitHandler.pull(baseLocalPath);
+//                        gitHandler.pull(o.getNowLocalPath());
                         codeCovService.calculateDeployDiffMethods(o);
                         if (o.getRequestStatus() != Constants.JobStatus.DIFF_METHOD_DONE.val()) {
                             log.info("{}计算覆盖率具体步骤...计算增量代码失败，uuid={}", Thread.currentThread().getName(), o.getUuid());
