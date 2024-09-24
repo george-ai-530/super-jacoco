@@ -2,6 +2,8 @@ package com.xiaoju.basetech.entity;
 
 import lombok.Data;
 
+import java.util.Date;
+
 /**
  * @description:
  * @author: gaoweiwei_v
@@ -19,5 +21,8 @@ public class CoverResult {
     private double branchCoverage;
     private String errMsg;
     private String logFile;
+
+    private Date createTime;
+    private Date updateTime;
 
 }

@@ -27,7 +27,7 @@ public interface CodeCovService {
      * @param envCoverRequest
      */
 
-    void triggerEnvCov(EnvCoverRequest envCoverRequest);
+    String triggerEnvCov(EnvCoverRequest envCoverRequest);
 
     /**
      * 克隆代码&&编译代码

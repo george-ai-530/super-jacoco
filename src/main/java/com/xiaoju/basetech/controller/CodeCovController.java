@@ -51,9 +51,8 @@ public class CodeCovController {
      */
     @RequestMapping(value = "/triggerEnvCov", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
-    public HttpResult<Boolean> triggerEnvCov(@RequestBody @Validated EnvCoverRequest envCoverRequest) {
-        codeCovService.triggerEnvCov(envCoverRequest);
-        return HttpResult.success();
+    public HttpResult<String> triggerEnvCov(@RequestBody @Validated EnvCoverRequest envCoverRequest) {
+        return HttpResult.success(codeCovService.triggerEnvCov(envCoverRequest));
 
     }
 

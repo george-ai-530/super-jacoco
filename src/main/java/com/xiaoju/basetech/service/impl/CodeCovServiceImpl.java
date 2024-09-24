@@ -10,13 +10,13 @@ import com.xiaoju.basetech.util.*;
 import jodd.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang.StringUtils;
 import org.jacoco.core.tools.ExecFileLoader;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -274,14 +274,26 @@ public class CodeCovServiceImpl implements CodeCovService {
      */
 
     @Override
-    public void triggerEnvCov(EnvCoverRequest envCoverRequest) {
+    public String triggerEnvCov(EnvCoverRequest envCoverRequest) {
         try {
             CoverageReportEntity coverageReport = new CoverageReportEntity();
             coverageReport.setFrom(Constants.CoverageFrom.ENV.val());
             coverageReport.setEnvType("");
+            String uuid = envCoverRequest.getUuid().replaceAll("/","_");
+            CoverageReportEntity currentReport = coverageReportDao.queryCoverageReportByUuid(uuid);
+            if (currentReport != null) {
+                return uuid;
+            }
+            envCoverRequest.setUuid(uuid);
+
             coverageReport.setUuid(envCoverRequest.getUuid());
             coverageReport.setGitUrl(envCoverRequest.getGitUrl());
-            coverageReport.setNowVersion(envCoverRequest.getNowVersion());
+            String nowVersion = envCoverRequest.getNowVersion();
+            if(nowVersion.startsWith("origin/")){
+                nowVersion = nowVersion.replace("origin/", "");
+            }
+
+            coverageReport.setNowVersion(nowVersion);
             coverageReport.setType(envCoverRequest.getType());
 
             if (!StringUtils.isEmpty(envCoverRequest.getBaseVersion())) {
@@ -297,7 +309,7 @@ public class CodeCovServiceImpl implements CodeCovService {
                 coverageReport.setRequestStatus(Constants.JobStatus.NODIFF.val());
                 coverageReport.setErrMsg("没有增量方法");
                 coverageReportDao.insertCoverageReportById(coverageReport);
-                return;
+                return uuid;
             }
 
             coverageReport.setRequestStatus(Constants.JobStatus.WAITING.val());
@@ -318,6 +330,7 @@ public class CodeCovServiceImpl implements CodeCovService {
                 }
                 calculateEnvCov(coverageReport);
             }).start();
+            return uuid;
         } catch (Exception e) {
             throw new ResponseException(e.getMessage());
         }
