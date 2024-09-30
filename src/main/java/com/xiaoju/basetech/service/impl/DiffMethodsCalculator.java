@@ -18,18 +18,21 @@ public class DiffMethodsCalculator {
      *
      * @param coverageReport 覆盖率报告实体
      */
-    public void executeDiffMethods(CoverageReportEntity coverageReport) {
+    public String executeDiffMethods(CoverageReportEntity coverageReport) {
         StringBuilder diffFile = new StringBuilder();
         long s = System.currentTimeMillis();
+        String result = "";
         HashMap<String, String> map = JDiffFiles.diffMethodsListNew(coverageReport);
         if (!CollectionUtils.isEmpty(map)) {
             for (Map.Entry<String, String> entry : map.entrySet()) {
                 diffFile.append(entry.getKey()).append(":").append(entry.getValue()).append("%");
             }
-            coverageReport.setDiffMethod(diffFile.toString());
+            result = diffFile.toString();
+            coverageReport.setDiffMethod(result);
         }
 
         log.info("uuid={} 增量计算耗时：{}", coverageReport.getUuid(), (System.currentTimeMillis() - s));
+        return result;
     }
 
     public String executeDiffMethodsForEnv(String baseVersionPath, String nowVersionPath, String baseVersion, String nowVersion) {

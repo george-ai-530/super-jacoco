@@ -15,19 +15,32 @@ import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.FileInputStream;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class MethodParser {
     protected HashMap<String, String> methodMd5Map;
+
     public HashMap<String, String> parseMethodsMd5(String classFile) throws Exception {
         methodMd5Map = new HashMap<>();
         FileInputStream in = new FileInputStream(classFile);
-        CompilationUnit cu = JavaParser.parse(in);
+        CompilationUnit cu = null;
+        try {
+            cu = JavaParser.parse(in);
+        } catch (Exception e) {
+            log.error("parse class 失败: " + classFile);
+        }
+        if (Objects.isNull(cu)) {
+            return methodMd5Map;
+        }
+
         //这里去掉注释好像没啥用20200213
         List<Comment> comments = cu.getAllContainedComments();
         List<Comment> unwantedComments = comments
@@ -42,17 +55,16 @@ public class MethodParser {
     }
 
 
-
-    public static void main(String[] args){
-        String file="/Users/didi/IdeaProjects/super-jacoco/clonecode/1581780948510/8b2c3257b672041b5dc272f19fdab45410301c5e/rollsroyce-biz/src/main/java/com/xiaoju/automarket/energy/rollsroyce/biz/flow/OrderFlow.java";
-        MethodParser parser=new MethodParser();
+    public static void main(String[] args) {
+        String file = "/Users/didi/IdeaProjects/super-jacoco/clonecode/1581780948510/8b2c3257b672041b5dc272f19fdab45410301c5e/rollsroyce-biz/src/main/java/com/xiaoju/automarket/energy/rollsroyce/biz/flow/OrderFlow.java";
+        MethodParser parser = new MethodParser();
         try {
-         //   parser.parseMethodsMd5(file);
+            //   parser.parseMethodsMd5(file);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        String ll="/Users/didi/IdeaProjects/super-jacoco/clonecode/1582023571353/8b2c3257b672041b5dc272f19fdab45410301c5e/rollsroyce-biz/src/main/java/";
-        System.out.println(ll.replace("/src/main/java/","/target/"));
+        String ll = "/Users/didi/IdeaProjects/super-jacoco/clonecode/1582023571353/8b2c3257b672041b5dc272f19fdab45410301c5e/rollsroyce-biz/src/main/java/";
+        System.out.println(ll.replace("/src/main/java/", "/target/"));
 
     }
 
@@ -60,12 +72,12 @@ public class MethodParser {
         @Override
         public void visit(MethodDeclaration n, Void arg) {
             NodeList<Parameter> parameters = n.getParameters();
-            StringBuilder builder=new StringBuilder(n.getNameAsString());
+            StringBuilder builder = new StringBuilder(n.getNameAsString());
             for (Parameter parameter : parameters) {
                 //比如private boolean isNotOwnerOrder(long passportUid, OrderInfoDTO orderInfoDTO) {
                 //long的size是0的,而且asm中也没有这个long,所以要丢掉
                 // TODO: 2020/2/14
-                if(parameter.getType().getChildNodes().size()>0){
+                if (parameter.getType().getChildNodes().size() > 0) {
                     builder.append(",");
                     builder.append(String.valueOf(parameter.getType().getChildNodes().get(0)));
                 }
@@ -97,9 +109,6 @@ public class MethodParser {
         }
         return "";
     }
-
-
-
 
 
     public HashMap<String, String> getMethodMd5Map() {

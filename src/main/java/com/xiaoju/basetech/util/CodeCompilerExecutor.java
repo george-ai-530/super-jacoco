@@ -1,8 +1,8 @@
 package com.xiaoju.basetech.util;
 
 import com.xiaoju.basetech.entity.CoverageReportEntity;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.util.concurrent.TimeoutException;
 

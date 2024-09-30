@@ -1,8 +1,12 @@
 package com.xiaoju.basetech.job;
 
 import com.xiaoju.basetech.dao.CoverageReportDao;
+import com.xiaoju.basetech.dao.DeployInfoDao;
 import com.xiaoju.basetech.entity.CoverageReportEntity;
+import com.xiaoju.basetech.entity.DeployInfoEntity;
 import com.xiaoju.basetech.service.CodeCovService;
+import com.xiaoju.basetech.util.CmdExecutor;
+import com.xiaoju.basetech.util.CodeCompilerExecutor;
 import com.xiaoju.basetech.util.Constants;
 import com.xiaoju.basetech.util.GitHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +22,9 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 import static com.xiaoju.basetech.util.Constants.CODE_ROOT;
+import static com.xiaoju.basetech.util.Constants.REPORT_PATH;
 
 /**
  * @description:
@@ -34,6 +40,17 @@ public class CodeCoverageScheduleJob {
 
     @Autowired
     private CodeCovService codeCovService;
+
+    @Autowired
+    private GitHandler gitHandler;
+
+    @Autowired
+    private CodeCompilerExecutor codeCompilerExecutor;
+
+    @Autowired
+    private DeployInfoDao deployInfoDao;
+
+    private static final Long CMD_TIMEOUT = 600000L;
 
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd  HH:mm:ss");
@@ -91,12 +108,12 @@ public class CodeCoverageScheduleJob {
     }
 
     /**
-     * 每五分钟从项目机器上拉取exec执行文件，计算环境的增量方法覆盖率
+     * 每1分钟从项目机器上拉取exec执行文件，计算环境的增量方法覆盖率
      */
-    @Scheduled(fixedDelay = 300_000L, initialDelay = 3_000L)
+    @Scheduled(fixedDelay = 60_000L, initialDelay = 3_000L)
     public void calculateEnvCov() {
         List<CoverageReportEntity> resList = coverageReportDao.queryCoverByStatus(Constants.JobStatus.SUCCESS.val(),
-                Constants.CoverageFrom.ENV.val(), 10);
+                Constants.CoverageFrom.ENV.val(), 20);
         log.info("查询需要拉取exec文件的数据{}条", resList.size());
         resList.forEach(o -> {
             try {
@@ -113,13 +130,19 @@ public class CodeCoverageScheduleJob {
                         }
                     }
                     log.info("others execute exec task uuid={}", o.getUuid());
+                    String uuid = o.getUuid();
+
+
                     if (o.getType() == Constants.ReportType.DIFF.val()
 //                            && StringUtils.isEmpty(o.getDiffMethod())
                     ) {
                         String baseLocalPath = CODE_ROOT + o.getUuid() + "/" + o.getBaseVersion().replace("/", "_");
                         o.setBaseLocalPath(baseLocalPath);
-//                        gitHandler.pull(baseLocalPath);
-//                        gitHandler.pull(o.getNowLocalPath());
+
+
+                        gitHandler.pull(baseLocalPath);
+                        gitHandler.pull(o.getNowLocalPath());
+                        codeCompilerExecutor.compileCode(o);
                         codeCovService.calculateDeployDiffMethods(o);
                         if (o.getRequestStatus() != Constants.JobStatus.DIFF_METHOD_DONE.val()) {
                             log.info("{}计算覆盖率具体步骤...计算增量代码失败，uuid={}", Thread.currentThread().getName(), o.getUuid());
@@ -127,6 +150,18 @@ public class CodeCoverageScheduleJob {
                         }
                     }
                     codeCovService.calculateEnvCov(o);
+                    CmdExecutor.executeCmd(new String[]{"rm -rf " + o.getJacocoSourcePath()}, CMD_TIMEOUT);
+
+                    int exitCode = CmdExecutor.executeCmd(new String[]{"rsync -a --delete  --no-d " + o.getSourceCodePath() + "/* " + o.getJacocoSourcePath()}, CMD_TIMEOUT);
+                    int exitCode1 = CmdExecutor.executeCmd(new String[]{"\\cp -f  " + o.getNowLocalPath() + "/jacoco.exec " + o.getJacocoSourcePath()}, CMD_TIMEOUT);
+                    if (exitCode != 0) {
+                        log.info("{}计算覆盖率具体步骤...复制上次代码，uuid={}", Thread.currentThread().getName(), uuid);
+                        return;
+                    }
+                    if (exitCode1 != 0) {
+                        log.info("{}计算覆盖率具体步骤...复制上次执行结果文件失败，uuid={}", Thread.currentThread().getName(), uuid);
+                        return;
+                    }
                     log.info("任务执行结束，uuid={}", o.getUuid());
                 } else {
                     log.info("任务已被领取，uuid={}", o.getUuid());

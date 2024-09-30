@@ -30,6 +30,7 @@ public class Constants {
         DIFF_METHODS_EXECUTING(4, "计算增量方法中"),
         DIFF_METHOD_DONE(104, "计算增量方法成功"),
         DIFF_METHOD_FAIL(204, "计算增量方法失败"),
+        DIFF_METHOD_CHANGE_EMPTY(304, "增量方法从有到无"),
 
         ADDMODULING(5, "添加集成模块中"),
         ADDMODULE_DONE(105, "添加集成模块成功"),

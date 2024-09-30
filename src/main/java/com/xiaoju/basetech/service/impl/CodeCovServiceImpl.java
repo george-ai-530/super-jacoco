@@ -38,6 +38,10 @@ import static com.xiaoju.basetech.util.Constants.*;
 @Service
 public class CodeCovServiceImpl implements CodeCovService {
     private static final String JACOCO_PATH = System.getProperty("user.home") + "/jacococli.jar";
+
+    private static final String LOMBOK_PATH = System.getProperty("user.home") + "/lombok.config";
+
+    private static final String JACOCO_MERGE_PATH = System.getProperty("user.home") + "/jacocoMerge.jar";
     private static final String COV_PATH = System.getProperty("user.home") + "/cover/";
     //普通命令超时时间是10分钟,600000L 143
     private static final Long CMD_TIMEOUT = 600000L;
@@ -227,7 +231,10 @@ public class CodeCovServiceImpl implements CodeCovService {
         // 计算增量方法
         coverageReport.setRequestStatus(Constants.JobStatus.DIFF_METHODS_EXECUTING.val());
         coverageReportDao.updateCoverageReportByReport(coverageReport);
-        diffMethodsCalculator.executeDiffMethods(coverageReport);
+        String diffMethods = diffMethodsCalculator.executeDiffMethods(coverageReport);
+        if (StringUtils.isNotBlank(coverageReport.getDiffMethod()) && StringUtils.isBlank(diffMethods)) {
+            coverageReport.setRequestStatus(JobStatus.DIFF_METHOD_CHANGE_EMPTY.val());
+        }
         coverageReportDao.updateCoverageReportByReport(coverageReport);
     }
 
@@ -358,19 +365,44 @@ public class CodeCovServiceImpl implements CodeCovService {
                     JACOCO_PATH + " dump --address " + deployInfoEntity.getAddress() + " --port " +
                     deployInfoEntity.getPort() + " --destfile ./jacoco.exec"}, CMD_TIMEOUT);
 
-            if (exitCode == 0) {
-                CmdExecutor.executeCmd(new String[]{"rm -rf " + REPORT_PATH + coverageReport.getUuid()}, CMD_TIMEOUT);
+            if (new File(coverageReport.getJacocoSourcePath()).exists()) {
                 String[] moduleList = deployInfoEntity.getChildModules().split(",");
-                StringBuilder builder = new StringBuilder("java -jar " + JACOCO_PATH + " report " + deployInfoEntity.getCodePath() + "/jacoco.exec ");
+                StringBuilder builder = new StringBuilder("java -jar " + JACOCO_MERGE_PATH + " report " + deployInfoEntity.getCodePath() + "/jacoco.exec ");
                 // 单模块的时候没有moduleList
                 if (moduleList.length == 0) {
                     builder.append("--sourcefiles ./src/main/java/ ");
-                    builder.append("--classfiles ./target/classes/com/ ");
+                    builder.append("--classfiles "+coverageReport.getSourceCodePath()+"/target/classes/com/ ");
+                    builder.append("--mergeClassfilepath ../jacocoSource/target/classes/com/ ");
+                } else {
+                    // 多模块
+                    for (String module : moduleList) {
+                        builder.append("--sourcefiles /" + module + "/src/main/java/ ");
+                        builder.append("--classfiles "+coverageReport.getSourceCodePath()+"/" + module + "/target/classes/com/ ");
+                        builder.append("--mergeClassfilepath ../jacocoSource/" + module + "/target/classes/com/ ");
+                    }
+                }
+
+                builder.append(" --encoding utf-8 --mergeExecfilepath ../jacocoSource/jacoco.exec --mergeExec ./jacoco.exec --onlyMergeExec true >> "+logFile);
+
+                int covMergeCode = CmdExecutor.executeCmd(new String[]{"cd " + deployInfoEntity.getCodePath() + "&&" + builder}, CMD_TIMEOUT);
+                if (covMergeCode != 0) {
+                    log.error("merge jacoco exec 文件失败"+uuid);
+                }
+            }
+
+            if (exitCode == 0) {
+                CmdExecutor.executeCmd(new String[]{"rm -rf " + REPORT_PATH + coverageReport.getUuid()}, CMD_TIMEOUT);
+                String[] moduleList = deployInfoEntity.getChildModules().split(",");
+                StringBuilder builder = new StringBuilder("java  -jar " + JACOCO_PATH + " report " + deployInfoEntity.getCodePath() + "/jacoco.exec ");
+                // 单模块的时候没有moduleList
+                if (moduleList.length == 0) {
+                    builder.append("--sourcefiles ./src/main/java/ ");
+                    builder.append("--classfiles "+coverageReport.getSourceCodePath()+"/target/classes/com/ ");
                 } else {
                     // 多模块
                     for (String module : moduleList) {
                         builder.append("--sourcefiles ./" + module + "/src/main/java/ ");
-                        builder.append("--classfiles ./" + module + "/target/classes/com/ ");
+                        builder.append("--classfiles "+coverageReport.getSourceCodePath()+"/" + module + "/target/classes/com/ ");
                     }
                 }
                 if (!StringUtils.isEmpty(coverageReport.getDiffMethod())) {
@@ -422,12 +454,12 @@ public class CodeCovServiceImpl implements CodeCovService {
                     for (String module : moduleList) {
                         StringBuilder buildertmp = new StringBuilder("java -jar " + JACOCO_PATH + " report ./jacoco.exec");
                         buildertmp.append(" --sourcefiles ./" + module + "/src/main/java/");
-                        buildertmp.append(" --classfiles ./" + module + "/target/classes/com/");
+                        buildertmp.append(" --classfiles "+coverageReport.getSourceCodePath()+"/" + module + "/target/classes/com/");
                         if (!StringUtils.isEmpty(coverageReport.getDiffMethod())) {
                             builder.append("--diffFile " + coverageReport.getDiffMethod());
                         }
                         buildertmp.append(" --html jacocoreport/" + module + " --encoding utf-8 --name " + reportName + ">>" + logFile);
-                        littleExitCode += CmdExecutor.executeCmd(new String[]{"cd " + deployInfoEntity.getCodePath() + "&&" + buildertmp.toString()}, CMD_TIMEOUT);
+                        littleExitCode += CmdExecutor.executeCmd(new String[]{"cd " + deployInfoEntity.getCodePath() + "&&" + buildertmp}, CMD_TIMEOUT);
                         if (littleExitCode == 0) {
                             childReportList.add(deployInfoEntity.getCodePath() + "/jacocoreport/" + module + "/index.html");
                         }
