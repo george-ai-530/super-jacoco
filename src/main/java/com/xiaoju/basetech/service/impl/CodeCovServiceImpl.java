@@ -11,9 +11,11 @@ import jodd.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.jacoco.core.tools.ExecFileLoader;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static com.xiaoju.basetech.util.Constants.*;
 
@@ -416,23 +419,35 @@ public class CodeCovServiceImpl implements CodeCovService {
                     try {
                         // 解析并获取覆盖率
                         Document doc = Jsoup.parse(reportFile.getAbsoluteFile(), "UTF-8", "");
-                        Elements bars = doc.getElementById("coveragetable").getElementsByTag("tfoot").first().getElementsByClass("bar");
-                        Elements lineCtr1 = doc.getElementById("coveragetable").getElementsByTag("tfoot").first().getElementsByClass("ctr1");
-                        Elements lineCtr2 = doc.getElementById("coveragetable").getElementsByTag("tfoot").first().getElementsByClass("ctr2");
+                        if (ObjectUtils.isEmpty(doc)) {
+                            return;
+                        }
+
+                        Element coveragetable = Optional.ofNullable(doc.getElementById("coveragetable"))
+                                .map(item -> item.getElementsByTag("tfoot"))
+                                .stream()
+                                .findFirst()
+                                .map(Elements::first).orElse(null);
                         double lineCoverage = 100;
                         double branchCoverage = 100;
-                        // 以上这里初始化都换成了1
-                        if (doc != null && bars != null) {
-                            float lineNumerator = Float.valueOf(lineCtr1.get(1).text().replace(",", ""));
-                            float lineDenominator = Float.valueOf(lineCtr2.get(3).text().replace(",", ""));
-                            lineCoverage = (lineDenominator - lineNumerator) / lineDenominator * 100;
-                            String[] branch = bars.get(1).text().split(" of ");
-                            float branchNumerator = Float.valueOf(branch[0].replace(",", ""));
-                            float branchDenominator = Float.valueOf(branch[1].replace(",", ""));
-                            if (branchDenominator > 0.0) {
-                                branchCoverage = (branchDenominator - branchNumerator) / branchDenominator * 100;
+                        if (ObjectUtils.isNotEmpty(coveragetable)) {
+                            Elements bars =    coveragetable.getElementsByClass("bar");
+                            Elements lineCtr1 = coveragetable.getElementsByClass("ctr1");
+                            Elements lineCtr2 = coveragetable.getElementsByClass("ctr2");
+                            if (bars != null) {
+
+                                float lineNumerator = Float.parseFloat(lineCtr1.get(1).text().replace(",", ""));
+                                float lineDenominator = Float.parseFloat(lineCtr2.get(3).text().replace(",", ""));
+                                lineCoverage = (lineDenominator - lineNumerator) / lineDenominator * 100;
+                                String[] branch = bars.get(1).text().split(" of ");
+                                float branchNumerator = Float.parseFloat(branch[0].replace(",", ""));
+                                float branchDenominator = Float.parseFloat(branch[1].replace(",", ""));
+                                if (branchDenominator > 0.0) {
+                                    branchCoverage = (branchDenominator - branchNumerator) / branchDenominator * 100;
+                                }
                             }
                         }
+
                         // 复制report报告
                         String[] cppCmd = new String[]{"cp -rf " + reportFile.getParent() + " " + REPORT_PATH + coverageReport.getUuid() + "/"};
                         CmdExecutor.executeCmd(cppCmd, CMD_TIMEOUT);
@@ -440,7 +455,6 @@ public class CodeCovServiceImpl implements CodeCovService {
                         coverageReport.setRequestStatus(Constants.JobStatus.SUCCESS.val());
                         coverageReport.setLineCoverage(lineCoverage);
                         coverageReport.setBranchCoverage(branchCoverage);
-                        return;
                     } catch (Exception e) {
                         coverageReport.setRequestStatus(Constants.JobStatus.ENVREPORT_FAIL.val());
                         coverageReport.setErrMsg("解析jacoco报告失败");
