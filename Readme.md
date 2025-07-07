@@ -9,9 +9,9 @@
 
 ### 使用方法
 #### 1、数据库安装和初始化
-	安装mysql数据库，创建数据库后执行sql/db.sql文件中的建表SQL
+	安装mysql 8.x数据库，创建数据库后执行sql/db.sql文件中的建表SQL
 #### 2、编译打包
-	 2.1 安装JDK1.8、mavan3
+	 2.1 安装JDK17、mavan3
 	 2.2 clone代码，更改application.properties文件中的数据库和gitlab配置：
 		 spring.datasource.url=jdbc:mysql://IP:端口/数据库名?useUnicode=true&amp;characterEncoding=utf8
 		 spring.datasource.username=
